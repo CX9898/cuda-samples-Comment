@@ -196,30 +196,30 @@ __host__ void init_host_matrices(half *a, half *b, float *c) {
 
 __global__ void compute_gemm(const half *A, const half *B, const float *C,
                              float *D, float alpha, float beta) {
-  extern __shared__ half shmem[][CHUNK_K * K + SKEW_HALF];
+  extern __shared__ half shmem[][CHUNK_K * K + SKEW_HALF]; // 用于储存A,B矩阵的部分片段以及中间计算结果
 
   // Warp and lane identification.
-  const unsigned int warpId = threadIdx.x / WARP_SIZE;
-  const unsigned int laneId = threadIdx.x % WARP_SIZE;
+  const unsigned int warpId = threadIdx.x / WARP_SIZE; // 表示当前线程属于哪个warp
+  const unsigned int laneId = threadIdx.x % WARP_SIZE; // 表示当前线程在其warp的第几号
 
   // Offset in shared memory from which the B matrix is stored.
-  const size_t shmem_idx_b_off = BLOCK_COL_TILES * M;
+  const size_t shmem_idx_b_off = BLOCK_COL_TILES * M; // 计算了当前线程要计算的B矩阵在共享内存中的偏移量
 
   // This pointer is used to access the C and D matrix tiles this warp computes.
   float *shmem_warp_tile_ptr = (float *)&shmem[0][0] +
                                (warpId / 2) * SHMEM_STRIDE * K * 2 +
-                               (warpId % 2) * SHMEM_OFFSET;
+                               (warpId % 2) * SHMEM_OFFSET; // 用来访问C和D矩阵矩阵的块
 
   // This pointer is used to stream the C and D matrices block-wide tile to and
   // from shared memory.
   float *shmem_warp_stream_ptr =
-      (float *)&shmem[0][0] + warpId * SHMEM_STRIDE * K;
+      (float *)&shmem[0][0] + warpId * SHMEM_STRIDE * K; // 用来将C和D矩阵的块传输到共享内存
 
   // Adjust the beta scaler, as it'll be multiplied by alpha at the end of
   // each tile computation. Technically this is not generally correct (may
   // result in a loss of precision). Zero still needs to be specially handled
   // though.
-  beta /= alpha;
+  beta /= alpha; ////???
 
   // Each CTA slides along the 128 x 128 tiles from the top left corner of the
   // matrix to the right and down, and selects the next tile to compute. Once
