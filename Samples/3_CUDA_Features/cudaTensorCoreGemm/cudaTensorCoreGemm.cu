@@ -238,7 +238,7 @@ __global__ void compute_gemm(const half *A, const half *B, const float *C,
     // memory.
     const size_t gmem_idx =
         (block_tile_i + warpId) * M * GLOBAL_MEM_STRIDE + block_tile_j * N;
-    const float *src_gmem_warp_stream_ptr = &C[gmem_idx];
+    const float *src_gmem_warp_stream_ptr = &C[gmem_idx]; // 指向C矩阵数据的指针, 用于将内存复制到共享内存
 
     // Stream multiple C tiles to shared memory.
 #pragma unroll
@@ -265,7 +265,7 @@ __global__ void compute_gemm(const half *A, const half *B, const float *C,
         const float *tile_ptr =
             shmem_warp_tile_ptr + i * SHMEM_STRIDE * K + j * N;
 
-        wmma::load_matrix_sync(c[i][j], tile_ptr, SHMEM_STRIDE, C_LAYOUT);
+        wmma::load_matrix_sync(c[i][j], tile_ptr, SHMEM_STRIDE, C_LAYOUT); // 从共享内存中加载矩阵C的一块到寄存器
       }
     }
 
@@ -383,7 +383,7 @@ __global__ void compute_gemm(const half *A, const half *B, const float *C,
 
     // Now that shared memory contains all the D tiles, stream them to global
     // memory.
-    float *dst_gmem_warp_stream_ptr = &D[gmem_idx];
+    float *dst_gmem_warp_stream_ptr = &D[gmem_idx]; // 指向每一段全局内存D的指针
 
 #pragma unroll
     for (int i = 0; i < K; i++) {
